@@ -1,4 +1,6 @@
+fn ex(){
 
+}
 
 fn main(){
 
