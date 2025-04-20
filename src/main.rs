@@ -1,10 +1,8 @@
 use iced::Settings;
 use iced::{
-    executor, Application, Command, Theme,
-    widget::{column, text, text_input, TextInput},
+    executor, Application, Command, Theme, Element,
+    widget::{column, text, text_input, TextInput, button},
 };
-
-
 
 fn main() -> iced::Result{
     TaskCrab::run(Settings::default())
@@ -43,6 +41,11 @@ impl Application for TaskCrab{
             Message::Submit => {
                 self.tasks.push(self.input.clone());
             }
+            Message::Delete(i) => {
+                if i < self.tasks.len() {
+                    self.tasks.remove(i);
+                }
+            }
         }
         Command::none()
     }
@@ -56,15 +59,15 @@ impl Application for TaskCrab{
             .on_input(Message::InputChanged)
             .on_submit(Message::Submit);
 
-        let tasks = self.tasks.iter().map(|task| text(task).into()).collect();
+        let tasks = self.tasks.iter().enumerate()
+        .map(|(i, task)| { button(text(task)).on_press(Message::Delete(i)).into()}).collect();
 
         column![
-            text("TaskCrab"),
             input,
             text("Tasks:"),
             column(tasks)
-                .spacing(10)
-                .padding(10)
+                .spacing(5)
+                .padding(5)
         ]
         .padding(20)
         .into()
@@ -75,4 +78,5 @@ impl Application for TaskCrab{
 pub enum Message {
     InputChanged(String),
     Submit,
+    Delete(usize),
 }
