@@ -79,4 +79,5 @@ pub enum Message {
     InputChanged(String),
     Submit,
     Delete(usize),
+    Trial,
 }
