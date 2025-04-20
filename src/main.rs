@@ -1,7 +1,7 @@
 use iced::Settings;
 use iced::{
-    executor, Application, Command, Theme, Element,
-    widget::{column, text, text_input, TextInput, button},
+    executor, Application, Command, Theme,
+    widget::{column, text, TextInput, button, container},
 };
 
 fn main() -> iced::Result{
@@ -60,14 +60,27 @@ impl Application for TaskCrab{
             .on_submit(Message::Submit);
 
         let tasks = self.tasks.iter().enumerate()
-        .map(|(i, task)| { button(text(task)).on_press(Message::Delete(i)).into()}).collect();
+        .map(|(i, task)| { 
+            button(text(task).size(18)).padding(10).style(iced::theme::Button::Secondary)
+            .on_press(Message::Delete(i)).into()}).collect();
+
+        //implement scrolling
+        //implement memory (Database?)
+        //implement task completion graphic
+        //implement task parameters
+        //implement task organization/sorting
+        //haha todo list in todo list
+        //make perty
+
 
         column![
             input,
-            text("Tasks:"),
-            column(tasks)
+            text("Tasks:").horizontal_alignment(iced::alignment::Horizontal::Center).size(30),
+            container(
+                column(tasks)
                 .spacing(5)
                 .padding(5)
+            ).width(iced::Length::Fill).height(iced::Length::Fill)
         ]
         .padding(20)
         .into()
