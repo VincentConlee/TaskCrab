@@ -67,6 +67,10 @@ impl Application for TaskCrab{
                 let _ = clear_tasks_file();
                 let _ = save_tasks_to_file(&self.tasks);
             }
+            Message::Clear => {
+                self.tasks.clear();
+                let _ = clear_tasks_file();
+            }
         }
         Command::none()
     }
@@ -101,7 +105,11 @@ impl Application for TaskCrab{
                 column(tasks)
                 .spacing(5)
                 .padding(5)
-            ).width(Length::Fill).height(Length::Shrink))
+            ).width(Length::Fill).height(Length::Shrink)),
+            button(text("Clear Tasks").size(20))
+                .on_press(Message::Clear)
+                .padding(5)
+                .style(iced::theme::Button::Text),
         ]
         .padding(20)
         .into()
@@ -113,6 +121,7 @@ pub enum Message {
     InputChanged(String),
     Submit,
     Delete(usize),
+    Clear,
 }
 
 fn load_tasks_from_file() -> Result<Vec<Task>, std::io::Error> {
