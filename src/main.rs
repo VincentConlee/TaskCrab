@@ -89,7 +89,6 @@ impl Application for TaskCrab{
             button(text(task.name.clone()).size(18)).padding(5).style(iced::theme::Button::Text)
             .on_press(Message::Delete(i)).into()}).collect();
 
-        //implement clear
         //implement wait (so tasks don't get spammed)
         //implement task completion graphic
         //implement task parameters
