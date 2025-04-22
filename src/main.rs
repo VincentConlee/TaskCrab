@@ -59,6 +59,7 @@ impl Application for TaskCrab{
                     _priority: 0,
                 });
                 let _ = save_tasks_to_file(&self.tasks);
+                self.input.clear();
             }
             Message::Delete(i) => {
                 if i < self.tasks.len() {
@@ -89,10 +90,12 @@ impl Application for TaskCrab{
             button(text(task.name.clone()).size(18)).padding(5).style(iced::theme::Button::Text)
             .on_press(Message::Delete(i)).into()}).collect();
 
+        //implement highligh after task creation
         //implement wait (so tasks don't get spammed)
         //implement task completion graphic
         //implement task parameters
         //implement task organization/sorting
+        //add to path so it can be run from anywhere
         //haha todo list in todo list
         //make perty
 
