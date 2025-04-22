@@ -50,6 +50,9 @@ impl Application for TaskCrab{
                 self.input = new_input;
             }
             Message::Submit => {
+                if self.input.is_empty() {
+                    return Command::none();
+                }
                 let _ = clear_tasks_file();
                 self.tasks.push(Task{
                     id: self.tasks.len() as u64,
@@ -90,7 +93,6 @@ impl Application for TaskCrab{
             button(text(task.name.clone()).size(18)).padding(5).style(iced::theme::Button::Text)
             .on_press(Message::Delete(i)).into()}).collect();
 
-        //implement highligh after task creation
         //implement wait (so tasks don't get spammed)
         //implement task completion graphic
         //implement task parameters
