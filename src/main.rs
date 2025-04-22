@@ -64,6 +64,8 @@ impl Application for TaskCrab{
                 if i < self.tasks.len() {
                     self.tasks.remove(i);
                 }
+                let _ = clear_tasks_file();
+                let _ = save_tasks_to_file(&self.tasks);
             }
         }
         Command::none()
