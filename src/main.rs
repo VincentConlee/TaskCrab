@@ -1,8 +1,10 @@
 use iced::Settings;
 use iced::{
-    executor, Application, Command, Theme,
-    widget::{column, text, TextInput, button, container},
+    executor, Application, Command, Theme, Length,
+    widget::{column, text, TextInput, button, container, scrollable},
 };
+use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 fn main() -> iced::Result{
     TaskCrab::run(Settings::default())
@@ -10,7 +12,16 @@ fn main() -> iced::Result{
 
 pub struct TaskCrab{
     input: String,
-    tasks: Vec<String>,
+    tasks: Vec<Task>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Task{
+    id: u64,
+    name: String,
+    _description: String,
+    _time: u64,
+    _priority: u8,
 }
 
 impl Application for TaskCrab{
@@ -23,7 +34,7 @@ impl Application for TaskCrab{
         (
             TaskCrab {
                 input: String::new(),
-                tasks: Vec::new(),
+                tasks: load_tasks_from_file().unwrap_or_else(|_| Vec::new()),
             },
             Command::none(),
         )
@@ -39,7 +50,15 @@ impl Application for TaskCrab{
                 self.input = new_input;
             }
             Message::Submit => {
-                self.tasks.push(self.input.clone());
+                let _ = clear_tasks_file();
+                self.tasks.push(Task{
+                    id: self.tasks.len() as u64,
+                    name: self.input.clone(),
+                    _description: String::new(),
+                    _time: 0,
+                    _priority: 0,
+                });
+                let _ = save_tasks_to_file(&self.tasks);
             }
             Message::Delete(i) => {
                 if i < self.tasks.len() {
@@ -61,26 +80,26 @@ impl Application for TaskCrab{
 
         let tasks = self.tasks.iter().enumerate()
         .map(|(i, task)| { 
-            button(text(task).size(18)).padding(10).style(iced::theme::Button::Secondary)
+            button(text(task.name.clone()).size(18)).padding(5).style(iced::theme::Button::Text)
             .on_press(Message::Delete(i)).into()}).collect();
 
-        //implement scrolling
-        //implement memory (Database?)
+        //implement clear
+        //implement wait (so tasks don't get spammed)
         //implement task completion graphic
         //implement task parameters
         //implement task organization/sorting
         //haha todo list in todo list
         //make perty
 
-
         column![
             input,
             text("Tasks:").horizontal_alignment(iced::alignment::Horizontal::Center).size(30),
+            scrollable(
             container(
                 column(tasks)
                 .spacing(5)
                 .padding(5)
-            ).width(iced::Length::Fill).height(iced::Length::Fill)
+            ).width(Length::Fill).height(Length::Shrink))
         ]
         .padding(20)
         .into()
@@ -92,4 +111,27 @@ pub enum Message {
     InputChanged(String),
     Submit,
     Delete(usize),
+}
+
+fn load_tasks_from_file() -> Result<Vec<Task>, std::io::Error> {
+    let file = std::fs::File::open("tasks.json")?;
+    let tasks: Vec<Task> = serde_json::from_reader(file)?;
+    Ok(tasks)
+}
+
+fn save_tasks_to_file(tasks: &Vec<Task>) -> Result<(), std::io::Error> {
+    let file = std::fs::File::create("tasks.json")?;
+    serde_json::to_writer_pretty(file, tasks)?;
+    Ok(())
+}
+
+fn clear_tasks_file() -> Result<(), std::io::Error> {
+    std::fs::write("tasks.json", "")?;
+    Ok(())
+}
+
+impl Display for Task {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
