@@ -1,30 +1,32 @@
 use iced::Settings;
 use iced::{
-    executor, Application, Command, Theme, Length,
-    widget::{column, text, TextInput, button, container, scrollable},
+    executor,
+    widget::{button, column, container, scrollable, text, TextInput},
+    Alignment, Application, Command, Length, Theme,
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-fn main() -> iced::Result{
+fn main() -> iced::Result {
     TaskCrab::run(Settings::default())
 }
 
-pub struct TaskCrab{
+pub struct TaskCrab {
     input: String,
     tasks: Vec<Task>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Task{
+pub struct Task {
     id: u64,
     name: String,
     _description: String,
     _time: u64,
     _priority: u8,
+    _due_date: String,
 }
 
-impl Application for TaskCrab{
+impl Application for TaskCrab {
     type Executor = executor::Default;
     type Message = Message;
     type Theme = iced::Theme;
@@ -54,12 +56,13 @@ impl Application for TaskCrab{
                     return Command::none();
                 }
                 let _ = clear_tasks_file();
-                self.tasks.push(Task{
+                self.tasks.push(Task {
                     id: self.tasks.len() as u64,
                     name: self.input.clone(),
                     _description: String::new(),
                     _time: 0,
                     _priority: 0,
+                    _due_date: String::new(),
                 });
                 let _ = save_tasks_to_file(&self.tasks);
                 self.input.clear();
@@ -88,12 +91,19 @@ impl Application for TaskCrab{
             .on_input(Message::InputChanged)
             .on_submit(Message::Submit);
 
-        let tasks = self.tasks.iter().enumerate()
-        .map(|(i, task)| { 
-            button(text(task.name.clone()).size(18)).padding(5).style(iced::theme::Button::Text)
-            .on_press(Message::Delete(i)).into()}).collect();
+        let tasks = self
+            .tasks
+            .iter()
+            .enumerate()
+            .map(|(i, task)| {
+                button(text(task.name.clone()).size(18))
+                    .padding(5)
+                    .style(iced::theme::Button::Text)
+                    .on_press(Message::Delete(i))
+                    .into()
+            })
+            .collect();
 
-        //implement wait (so tasks don't get spammed)
         //implement task completion graphic
         //implement task parameters
         //implement task organization/sorting
@@ -103,19 +113,22 @@ impl Application for TaskCrab{
 
         column![
             input,
-            text("Tasks:").horizontal_alignment(iced::alignment::Horizontal::Center).size(30),
+            text("Tasks:")
+                .horizontal_alignment(iced::alignment::Horizontal::Center)
+                .size(30),
             scrollable(
-            container(
-                column(tasks)
-                .spacing(5)
-                .padding(5)
-            ).width(Length::Fill).height(Length::Shrink)),
+                container(column(tasks).spacing(5).padding(5))
+                    .width(Length::Fill)
+                    .height(Length::Shrink)
+                    .align_x(iced::alignment::Horizontal::Center)
+            ),
             button(text("Clear Tasks").size(20))
                 .on_press(Message::Clear)
                 .padding(5)
                 .style(iced::theme::Button::Text),
         ]
         .padding(20)
+        .align_items(Alignment::Center)
         .into()
     }
 }
