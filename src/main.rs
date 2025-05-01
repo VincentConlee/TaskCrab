@@ -105,6 +105,7 @@ impl Application for TaskCrab {
             .collect();
 
         //implement task completion graphic
+        //make json private
         //implement task parameters
         //implement task organization/sorting
         //add to path so it can be run from anywhere
