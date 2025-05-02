@@ -1,3 +1,8 @@
+use chrono::{Datelike, Local};
+/// TaskCrab
+/// A simple task manager application built with Iced and Rust.
+/// It allows users to add, delete, and view tasks with different priorities and due dates.
+/// The application uses JSON files to store tasks and provides a simple UI for task management.
 use iced::Settings;
 use iced::{
     executor,
@@ -17,6 +22,9 @@ pub struct TaskCrab {
     input: String,
     tasks: Vec<Task>,
     priority: u8,
+    day: String,
+    month: String,
+    year: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,7 +32,7 @@ pub struct Task {
     id: u64,
     name: String,
     priority: u8,
-    _due_date: (u8, u8, u16),
+    due_date: (u8, u8, u16),
 }
 
 impl Application for TaskCrab {
@@ -33,29 +41,49 @@ impl Application for TaskCrab {
     type Theme = iced::Theme;
     type Flags = ();
 
+    //-------------Application Functions--------------//
+
+    fn title(&self) -> String {
+        String::from("TaskCrab go Brrrr")
+    }
+    fn theme(&self) -> Self::Theme {
+        Theme::Dark
+    }
+
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
             TaskCrab {
                 input: String::new(),
                 tasks: load_tasks_from_file().unwrap_or_else(|_| Vec::new()),
                 priority: 3,
+                day: String::new(),
+                month: String::new(),
+                year: String::new(),
             },
             Command::none(),
         )
     }
 
-    fn title(&self) -> String {
-        String::from("TaskCrab go Brrrr")
-    }
-
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match message {
+            //update input fields
             Message::InputChanged(new_input) => {
                 self.input = new_input;
             }
             Message::PrioritySelected(priority) => {
                 self.priority = priority;
             }
+            Message::DayChanged(day) => {
+                self.day = day;
+            }
+            Message::MonthChanged(month) => {
+                self.month = month;
+            }
+            Message::YearChanged(year) => {
+                self.year = year;
+            }
+
+            //submit task
             Message::Submit => {
                 if self.input.is_empty() {
                     return Command::none();
@@ -65,10 +93,17 @@ impl Application for TaskCrab {
                     id: self.tasks.len() as u64,
                     name: self.input.clone(),
                     priority: self.priority,
-                    _due_date: (0, 0, 0),
+                    due_date: (
+                        self.month.parse().unwrap_or(0),
+                        self.day.parse().unwrap_or(0),
+                        self.year.parse().unwrap_or(0),
+                    ),
                 });
                 let _ = save_tasks_to_file(&self.tasks);
                 self.input.clear();
+                self.day.clear();
+                self.month.clear();
+                self.year.clear();
             }
             Message::Delete(i) => {
                 if i < self.tasks.len() {
@@ -85,17 +120,49 @@ impl Application for TaskCrab {
         Command::none()
     }
 
-    fn theme(&self) -> Self::Theme {
-        Theme::Dark
-    }
+    //-------------View Function--------------//
 
     fn view(&self) -> iced::Element<Self::Message> {
-        let input = TextInput::new("Enter task", &self.input)
-            .on_input(Message::InputChanged)
-            .on_submit(Message::Submit);
+        //Top row with input and clear tasks
+        let top_row: Row<'_, Message> = Row::new()
+            .spacing(5)
+            .push(
+                TextInput::new("Enter task", &self.input)
+                    .on_input(Message::InputChanged)
+                    .on_submit(Message::Submit),
+            )
+            .push(
+                button(text("Clear Tasks").size(20))
+                    .on_press(Message::Clear)
+                    .padding(10)
+                    .style(iced::theme::Button::Text),
+            );
 
-        let priority = priority_selector(self.priority);
+        //second row with priority selector and date selector
+        let second_row: Row<'_, Message> = Row::new()
+            .spacing(5)
+            .push(priority_selector(self.priority).align_items(Alignment::Start))
+            .push(Text::new("Due Date:"))
+            .push(
+                TextInput::new("MM", &self.month)
+                    .on_input(Message::MonthChanged)
+                    .on_submit(Message::Submit)
+                    .width(Length::Fixed(40.0)),
+            )
+            .push(
+                TextInput::new("DD", &self.day)
+                    .on_input(Message::DayChanged)
+                    .on_submit(Message::Submit)
+                    .width(Length::Fixed(40.0)),
+            )
+            .push(
+                TextInput::new("YYYY", &self.year)
+                    .on_input(Message::YearChanged)
+                    .on_submit(Message::Submit)
+                    .width(Length::Fixed(60.0)),
+            );
 
+        //task rows with name, priority, and date
         let tasks = self
             .tasks
             .iter()
@@ -129,10 +196,22 @@ impl Application for TaskCrab {
                     .padding(1.5)
                     .align_x(iced::alignment::Horizontal::Left);
 
+                let due_date: Text<'_> = Text::new(
+                    match task.due_date {
+                        (0, 0, 0) => format!(""),
+                        (month, 0, 0) => format!("{}", month),
+                        (month, 0, year) if year != 0 => format!("{}/{}", month, year),
+                        (0, day, 0) => format!("{}", day),
+                        (month, day, year) if year == 0 => format!("{}/{}", month, day),
+                        (month, day, year) => format!("{}/{}/{}", month, day, year),
+                    }
+                );
+
                 Row::new()
                     .spacing(10)
-                    .push(task_button)
                     .push(priority_indicator)
+                    .push(task_button)
+                    .push(due_date)
                     .into()
             })
             .collect();
@@ -144,28 +223,47 @@ impl Application for TaskCrab {
         //add to path so it can be run from anywhere
         //haha todo list in todo list
 
+        //main container with input, priority, and tasks rows
         column![
-            input,
-            priority,
-            text("Tasks:")
-                .horizontal_alignment(iced::alignment::Horizontal::Left)
-                .size(30),
+            top_row,
+            container(second_row)
+                .align_x(iced::alignment::Horizontal::Left)
+                .width(Length::Fill)
+                .height(Length::Shrink),
+            container(
+                text("Tasks:")
+                    .horizontal_alignment(iced::alignment::Horizontal::Left)
+                    .size(30)
+            )
+            .align_x(iced::alignment::Horizontal::Left),
             scrollable(
                 container(column(tasks).spacing(5).padding(5))
                     .width(Length::Fill)
                     .height(Length::Shrink)
                     .align_x(iced::alignment::Horizontal::Left)
             ),
-            button(text("Clear Tasks").size(20))
-                .on_press(Message::Clear)
-                .padding(10)
-                .style(iced::theme::Button::Text),
         ]
         .padding(20)
         .align_items(Alignment::Center)
         .into()
     }
 }
+
+//-------------Message Enum--------------//
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    InputChanged(String),
+    PrioritySelected(u8),
+    DayChanged(String),
+    MonthChanged(String),
+    YearChanged(String),
+    Submit,
+    Delete(usize),
+    Clear,
+}
+
+//-------------UI Functions--------------//
 
 fn priority_selector(selected: u8) -> Row<'static, Message> {
     let mut row = Row::new().spacing(5);
@@ -186,14 +284,7 @@ fn priority_selector(selected: u8) -> Row<'static, Message> {
     row
 }
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    InputChanged(String),
-    PrioritySelected(u8),
-    Submit,
-    Delete(usize),
-    Clear,
-}
+//-------------File Functions--------------//
 
 fn load_tasks_from_file() -> Result<Vec<Task>, std::io::Error> {
     let file = std::fs::File::open("tasks.json")?;
@@ -211,6 +302,15 @@ fn clear_tasks_file() -> Result<(), std::io::Error> {
     std::fs::write("tasks.json", "")?;
     Ok(())
 }
+
+//-------------Date Functions--------------//
+
+fn get_current_date() -> (u8, u8, u16) {
+    let now = Local::now();
+    (now.day() as u8, now.month() as u8, now.year() as u16)
+}
+
+//-------------Display Functions--------------//
 
 impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
