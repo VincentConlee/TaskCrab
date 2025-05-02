@@ -44,7 +44,7 @@ impl Application for TaskCrab {
     //-------------Application Functions--------------//
 
     fn title(&self) -> String {
-        String::from("TaskCrab go Brrrr")
+        String::from("TaskCrab")
     }
     fn theme(&self) -> Self::Theme {
         Theme::Dark
@@ -123,26 +123,10 @@ impl Application for TaskCrab {
     //-------------View Function--------------//
 
     fn view(&self) -> iced::Element<Self::Message> {
-        //Top row with input and clear tasks
-        let top_row: Row<'_, Message> = Row::new()
+        //bottom row with input, priority, date, and clear button
+        let bottom_row: Row<'_, Message> = Row::new()
             .spacing(5)
-            .push(
-                TextInput::new("Enter task", &self.input)
-                    .on_input(Message::InputChanged)
-                    .on_submit(Message::Submit),
-            )
-            .push(
-                button(text("Clear Tasks").size(20))
-                    .on_press(Message::Clear)
-                    .padding(10)
-                    .style(iced::theme::Button::Text),
-            );
-
-        //second row with priority selector and date selector
-        let second_row: Row<'_, Message> = Row::new()
-            .spacing(5)
-            .push(priority_selector(self.priority).align_items(Alignment::Start))
-            .push(Text::new("Due Date:"))
+            .align_items(Alignment::Center)
             .push(
                 TextInput::new("MM", &self.month)
                     .on_input(Message::MonthChanged)
@@ -160,6 +144,17 @@ impl Application for TaskCrab {
                     .on_input(Message::YearChanged)
                     .on_submit(Message::Submit)
                     .width(Length::Fixed(60.0)),
+            )
+            .push(
+                TextInput::new("Enter tasks to pinch away", &self.input)
+                    .on_input(Message::InputChanged)
+                    .on_submit(Message::Submit),
+            )
+            .push(priority_selector(self.priority).align_items(Alignment::Center).height(30))
+            .push(
+                button(text("Clear").size(22))
+                    .on_press(Message::Clear)
+                    .style(iced::theme::Button::Text),
             );
 
         //task rows with name, priority, and date
@@ -168,10 +163,11 @@ impl Application for TaskCrab {
             .iter()
             .enumerate()
             .map(|(i, task)| {
-                let task_button = button(text(task.name.clone()).size(18))
+                let task_button = button(text(task.name.clone()).size(25))
                     .padding(5)
                     .style(iced::theme::Button::Text)
-                    .on_press(Message::Delete(i));
+                    .on_press(Message::Delete(i)).height(Length::Fixed(40.0))
+                    .height(Length::Fixed(40.0));
 
                 //color based on priority
                 let color = match task.priority {
@@ -184,28 +180,23 @@ impl Application for TaskCrab {
 
                 let priority_indicator = Container::new(Text::new(format!("●")))
                     .width(30)
-                    .height(30)
                     .style(iced::theme::Container::Custom(Box::new(
                         move |_: &Theme| container::Appearance {
                             text_color: Some(color),
                             background: None,
                             ..Default::default()
                         },
-                    )))
-                    .align_y(iced::alignment::Vertical::Bottom)
-                    .padding(1.5)
-                    .align_x(iced::alignment::Horizontal::Left);
+                    ))).height(Length::Fixed(40.0));
 
-                let due_date: Text<'_> = Text::new(
-                    match task.due_date {
-                        (0, 0, 0) => format!(""),
-                        (month, 0, 0) => format!("{}", month),
-                        (month, 0, year) if year != 0 => format!("{}/{}", month, year),
-                        (0, day, 0) => format!("{}", day),
-                        (month, day, year) if year == 0 => format!("{}/{}", month, day),
-                        (month, day, year) => format!("{}/{}/{}", month, day, year),
-                    }
-                );
+                let due_date: Text<'_> = Text::new(match task.due_date {
+                    (0, 0, 0) => format!(""),
+                    (month, 0, 0) => format!("{}", month),
+                    (0, day, 0) => format!("{}", day),
+                    (month, day, 0) => format!("{}/{}", month, day),
+                    (month, 0, year) if year != 0 => format!("{}/{}", month, year),
+                    (month, day, year) if year == 0 => format!("{}/{}", month, day),
+                    (month, day, year) => format!("{}/{}/{}", month, day, year),
+                }).height(Length::Fixed(40.0));
 
                 Row::new()
                     .spacing(10)
@@ -217,7 +208,6 @@ impl Application for TaskCrab {
             .collect();
 
         //implement task completion graphic
-        //implement task due date
         //implement task organization/sorting
         //make perty
         //add to path so it can be run from anywhere
@@ -225,26 +215,16 @@ impl Application for TaskCrab {
 
         //main container with input, priority, and tasks rows
         column![
-            top_row,
-            container(second_row)
+            scrollable(container(column(tasks).spacing(5).padding(5)))
+                .width(Length::Fill)
+                .height(Length::FillPortion(1)),
+            container(bottom_row)
                 .align_x(iced::alignment::Horizontal::Left)
                 .width(Length::Fill)
-                .height(Length::Shrink),
-            container(
-                text("Tasks:")
-                    .horizontal_alignment(iced::alignment::Horizontal::Left)
-                    .size(30)
-            )
-            .align_x(iced::alignment::Horizontal::Left),
-            scrollable(
-                container(column(tasks).spacing(5).padding(5))
-                    .width(Length::Fill)
-                    .height(Length::Shrink)
-                    .align_x(iced::alignment::Horizontal::Left)
-            ),
+                .height(Length::Fixed(50.0)),
         ]
         .padding(20)
-        .align_items(Alignment::Center)
+        .spacing(10)
         .into()
     }
 }
@@ -274,9 +254,9 @@ fn priority_selector(selected: u8) -> Row<'static, Message> {
             .on_press(Message::PrioritySelected(i))
             .padding(0)
             .style(if i <= selected {
-                iced::theme::Button::Primary
+                iced::theme::Button::Text
             } else {
-                iced::theme::Button::Secondary
+                iced::theme::Button::Text
             });
 
         row = row.push(button);
@@ -305,7 +285,7 @@ fn clear_tasks_file() -> Result<(), std::io::Error> {
 
 //-------------Date Functions--------------//
 
-fn get_current_date() -> (u8, u8, u16) {
+fn _get_current_date() -> (u8, u8, u16) {
     let now = Local::now();
     (now.day() as u8, now.month() as u8, now.year() as u16)
 }
