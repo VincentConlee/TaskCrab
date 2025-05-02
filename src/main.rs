@@ -1,7 +1,9 @@
 use iced::Settings;
 use iced::{
     executor,
-    widget::{button, column, container, scrollable, text, TextInput},
+    widget::{
+        button, column, container, scrollable, text, Button, Container, Row, Text, TextInput,
+    },
     Alignment, Application, Command, Length, Theme,
 };
 use serde::{Deserialize, Serialize};
@@ -14,16 +16,15 @@ fn main() -> iced::Result {
 pub struct TaskCrab {
     input: String,
     tasks: Vec<Task>,
+    priority: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     id: u64,
     name: String,
-    _description: String,
-    _time: u64,
-    _priority: u8,
-    _due_date: String,
+    priority: u8,
+    _due_date: (u8, u8, u16),
 }
 
 impl Application for TaskCrab {
@@ -37,6 +38,7 @@ impl Application for TaskCrab {
             TaskCrab {
                 input: String::new(),
                 tasks: load_tasks_from_file().unwrap_or_else(|_| Vec::new()),
+                priority: 3,
             },
             Command::none(),
         )
@@ -51,6 +53,9 @@ impl Application for TaskCrab {
             Message::InputChanged(new_input) => {
                 self.input = new_input;
             }
+            Message::PrioritySelected(priority) => {
+                self.priority = priority;
+            }
             Message::Submit => {
                 if self.input.is_empty() {
                     return Command::none();
@@ -59,10 +64,8 @@ impl Application for TaskCrab {
                 self.tasks.push(Task {
                     id: self.tasks.len() as u64,
                     name: self.input.clone(),
-                    _description: String::new(),
-                    _time: 0,
-                    _priority: 0,
-                    _due_date: String::new(),
+                    priority: self.priority,
+                    _due_date: (0, 0, 0),
                 });
                 let _ = save_tasks_to_file(&self.tasks);
                 self.input.clear();
@@ -91,40 +94,71 @@ impl Application for TaskCrab {
             .on_input(Message::InputChanged)
             .on_submit(Message::Submit);
 
+        let priority = priority_selector(self.priority);
+
         let tasks = self
             .tasks
             .iter()
             .enumerate()
             .map(|(i, task)| {
-                button(text(task.name.clone()).size(18))
+                let task_button = button(text(task.name.clone()).size(18))
                     .padding(5)
                     .style(iced::theme::Button::Text)
-                    .on_press(Message::Delete(i))
+                    .on_press(Message::Delete(i));
+
+                //color based on priority
+                let color = match task.priority {
+                    1 => iced::Color::from_rgb(0.2, 0.8, 0.2),
+                    2 => iced::Color::from_rgb(0.5, 0.8, 0.2),
+                    3 => iced::Color::from_rgb(1.0, 0.8, 0.0),
+                    4 => iced::Color::from_rgb(1.0, 0.5, 0.0),
+                    _ => iced::Color::from_rgb(1.0, 0.2, 0.2),
+                };
+
+                let priority_indicator = Container::new(Text::new(format!("●")))
+                    .width(30)
+                    .height(30)
+                    .style(iced::theme::Container::Custom(Box::new(
+                        move |_: &Theme| container::Appearance {
+                            text_color: Some(color),
+                            background: None,
+                            ..Default::default()
+                        },
+                    )))
+                    .align_y(iced::alignment::Vertical::Bottom)
+                    .padding(1.5)
+                    .align_x(iced::alignment::Horizontal::Left);
+
+                Row::new()
+                    .spacing(10)
+                    .push(task_button)
+                    .push(priority_indicator)
                     .into()
             })
             .collect();
 
         //implement task completion graphic
-        //implement task parameters
+        //implement task due date
         //implement task organization/sorting
+        //make perty
         //add to path so it can be run from anywhere
         //haha todo list in todo list
-        //make perty
 
         column![
             input,
+            priority,
             text("Tasks:")
-                .horizontal_alignment(iced::alignment::Horizontal::Center)
+                .horizontal_alignment(iced::alignment::Horizontal::Left)
                 .size(30),
             scrollable(
                 container(column(tasks).spacing(5).padding(5))
                     .width(Length::Fill)
                     .height(Length::Shrink)
-                    .align_x(iced::alignment::Horizontal::Center)
+                    .align_x(iced::alignment::Horizontal::Left)
             ),
             button(text("Clear Tasks").size(20))
                 .on_press(Message::Clear)
-                .padding(5)
+                .padding(10)
                 .style(iced::theme::Button::Text),
         ]
         .padding(20)
@@ -133,9 +167,29 @@ impl Application for TaskCrab {
     }
 }
 
+fn priority_selector(selected: u8) -> Row<'static, Message> {
+    let mut row = Row::new().spacing(5);
+
+    for i in 1..=5 {
+        let symbol = if i <= selected { "●" } else { "○" };
+        let button = Button::new(Text::new(symbol))
+            .on_press(Message::PrioritySelected(i))
+            .padding(0)
+            .style(if i <= selected {
+                iced::theme::Button::Primary
+            } else {
+                iced::theme::Button::Secondary
+            });
+
+        row = row.push(button);
+    }
+    row
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     InputChanged(String),
+    PrioritySelected(u8),
     Submit,
     Delete(usize),
     Clear,
