@@ -150,7 +150,11 @@ impl Application for TaskCrab {
                     .on_input(Message::InputChanged)
                     .on_submit(Message::Submit),
             )
-            .push(priority_selector(self.priority).align_items(Alignment::Center).height(30))
+            .push(
+                priority_selector(self.priority)
+                    .align_items(Alignment::Center)
+                    .height(30),
+            )
             .push(
                 button(text("Clear").size(22))
                     .on_press(Message::Clear)
@@ -166,7 +170,8 @@ impl Application for TaskCrab {
                 let task_button = button(text(task.name.clone()).size(25))
                     .padding(5)
                     .style(iced::theme::Button::Text)
-                    .on_press(Message::Delete(i)).height(Length::Fixed(40.0))
+                    .on_press(Message::Delete(i))
+                    .height(Length::Fixed(40.0))
                     .height(Length::Fixed(40.0));
 
                 //color based on priority
@@ -179,14 +184,13 @@ impl Application for TaskCrab {
                 };
 
                 let priority_indicator = Container::new(Text::new(format!("●")))
-                    .width(30)
                     .style(iced::theme::Container::Custom(Box::new(
                         move |_: &Theme| container::Appearance {
                             text_color: Some(color),
                             background: None,
                             ..Default::default()
                         },
-                    ))).height(Length::Fixed(40.0));
+                    )));
 
                 let due_date: Text<'_> = Text::new(match task.due_date {
                     (0, 0, 0) => format!(""),
@@ -196,13 +200,29 @@ impl Application for TaskCrab {
                     (month, 0, year) if year != 0 => format!("{}/{}", month, year),
                     (month, day, year) if year == 0 => format!("{}/{}", month, day),
                     (month, day, year) => format!("{}/{}/{}", month, day, year),
-                }).height(Length::Fixed(40.0));
+                })
+                .height(Length::Fixed(40.0));
 
                 Row::new()
-                    .spacing(10)
-                    .push(priority_indicator)
-                    .push(task_button)
-                    .push(due_date)
+                    .spacing(20)
+                    .align_items(Alignment::Center)
+                    .height(Length::Fixed(40.0))
+                    .push(
+                        Container::new(priority_indicator)
+                            .width(Length::Fixed(30.0))
+                            .center_y(),
+                    )
+                    .push(
+                        Container::new(task_button)
+                            .width(Length::FillPortion(3)) // Task name takes most space
+                            .center_y(),
+                    )
+                    .push(
+                        Container::new(due_date)
+                            .width(Length::Fixed(80.0)) // Fixed-width due date
+                            .center_y()
+                            .align_x(iced::alignment::Horizontal::Right),
+                    )
                     .into()
             })
             .collect();
