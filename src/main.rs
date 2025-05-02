@@ -228,12 +228,6 @@ impl Application for TaskCrab {
             })
             .collect();
 
-        //implement task completion graphic
-        //implement task organization/sorting
-        //make perty
-        //add to path so it can be run from anywhere
-        //haha todo list in todo list
-
         //main container with input, priority, and tasks rows
         column![
             scrollable(container(column(tasks).spacing(5).padding(5)))
@@ -332,3 +326,11 @@ fn sort_tasks(tasks: &mut Vec<Task>) {
         b_priority.cmp(&a_priority)
     });
 }
+
+//-------------Brainstorm for future--------------//
+// - Add a feature to set reminders for tasks.
+// - Description field for tasks??
+// - Add a feature to categorize tasks (e.g., work, personal, etc.).
+// - task history
+// - Completion graphic
+// - haha todo list in todo list
