@@ -99,6 +99,7 @@ impl Application for TaskCrab {
                         self.year.parse().unwrap_or(0),
                     ),
                 });
+                sort_tasks(&mut self.tasks);
                 let _ = save_tasks_to_file(&self.tasks);
                 self.input.clear();
                 self.day.clear();
@@ -288,7 +289,8 @@ fn priority_selector(selected: u8) -> Row<'static, Message> {
 
 fn load_tasks_from_file() -> Result<Vec<Task>, std::io::Error> {
     let file = std::fs::File::open("tasks.json")?;
-    let tasks: Vec<Task> = serde_json::from_reader(file)?;
+    let mut tasks: Vec<Task> = serde_json::from_reader(file)?;
+    sort_tasks(&mut tasks);
     Ok(tasks)
 }
 
@@ -316,4 +318,17 @@ impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
     }
+}
+
+//-------------Organization Functions--------------//
+//implement task organization/sorting
+
+fn sort_tasks(tasks: &mut Vec<Task>) {
+    tasks.sort_by(|a, b| {
+        //let a_date = (a.due_date.0, a.due_date.1, a.due_date.2);
+        //let b_date = (b.due_date.0, b.due_date.1, b.due_date.2);
+        let a_priority = a.priority;
+        let b_priority = b.priority;
+        b_priority.cmp(&a_priority)
+    });
 }
